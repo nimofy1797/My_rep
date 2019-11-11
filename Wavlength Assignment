@@ -1,0 +1,392 @@
+from random import randint
+import networkx as nx
+import matplotlib.pyplot as plt
+import math
+import operator
+
+
+class Node:
+    def __init__(self, data):
+        self.item = data
+        self.ref = None
+
+
+class LinkedList:
+    def __init__(self):
+        self.start_node = None
+
+    def traverse_list(self, C, R):
+        if self.start_node is None:
+            print("List has no element")
+            return
+        else:
+            N = self.start_node
+            for r in range(R):
+                for c in range(C):
+                    print(N.item, end=" ")
+                    N = N.ref
+                print('\n')
+
+    def insert_at_index(self, index, data):
+        if index == 0:
+            new_node = Node(data)
+            new_node.ref = self.start_node
+            self.start_node = new_node
+        else:
+            i = 0
+            n = self.start_node
+            while n.ref is not None:
+                n = n.ref
+                i = i + 1
+            n.ref = Node(data)
+
+    def find_node_at_index(self, index):
+        i = 0
+        N = self.start_node
+        while i is not index:
+            N = N.ref
+            i = i + 1
+        return N.item
+
+    def number_of_nodes(self):
+        i = 0
+        N = self.start_node
+        while N is not None:
+            N = N.ref
+            i = i + 1
+        return i
+
+    def insert_last(self, data):
+        N = self.start_node
+        while N.ref is not None:
+            N = N.ref
+        N.ref = Node(data)
+
+    def traverseWavelength(self):
+        N = self.start_node
+        while N.ref is not None:
+            print(N.item)
+            N = N.ref
+        print(N.item)
+
+
+def PrintingGraph(Graph):
+    plt.figure(figsize=(10, 10))
+    Node_pos = nx.circular_layout(Graph)
+    print("Nodes of graph: ")
+    print(Graph.nodes())
+    print("Edges of graph: ")
+    print(Graph.edges())
+    nx.draw_networkx(Graph, Node_pos, with_labels=True, node_color='green', node_size=450)
+    plt.show()  # display
+
+
+def TopologyGener(GraphList, C, R):
+    for Row in range(R):
+        for Column in range(C):
+            if Column is Row:
+                index = Row * R + Column
+                GraphList[index] = 0
+
+    return GraphList
+
+
+def AddingNodesANdEdges(GraphList, Column, Row):
+    Graph = nx.Graph()
+    for NodE in range(Column):
+        Graph.add_node(NodE + 1)
+    for r in range(Row):
+        for c in range(Column):
+            if GraphList[r * Row + c] is not 0:
+                Graph.add_edge(r + 1, c + 1)
+
+    return Graph.number_of_edges(), Graph.number_of_nodes(), Graph
+
+
+def CheckAdjacentNode(Graph, ColorArray, current_Node, NumNode):
+    Neighbors = [n for n in Graph.neighbors(current_Node + 1)]
+    length = len(Neighbors)
+    current_Color = ColorArray[current_Node]
+    NeigborsColors = [0] * length
+    for i in range(length):
+        NeigborsColors[i] = ColorArray[Neighbors[i] - 1]
+    NeigborsColors.sort()
+    previous = NeigborsColors[0]
+    SameArrayIndex = 0
+    Sum = sum(NeigborsColors)
+    for i in range(1, length):
+        if previous is NeigborsColors[i] and sum(NeigborsColors) is not 0:
+            SameArrayIndex = 1
+        else:
+            SameArrayIndex = 0
+    if current_Node is NumNode - 1:
+        if length is not 1:
+            current_Color = NeigborsColors[0]
+        else:
+            current_Color = NeigborsColors[0] - 1
+    if SameArrayIndex is not 1:
+        for i in range(length):
+            if NeigborsColors[i] is current_Color:
+                current_Color = NeigborsColors[i] + 1
+                ColorArray[current_Node] = current_Color
+    else:
+        i = 0
+        while NeigborsColors[0] is ColorArray[i]:
+            i = i + 1
+        current_Color = ColorArray[i]
+        ColorArray[current_Node] = current_Color
+
+
+def ColorAssignment(Graph, NumNode, current_Node, ColorArray, current_Color):
+    while current_Node is not NumNode:
+        CheckAdjacentNode(Graph, ColorArray, current_Node, NumNode)
+        current_Node = current_Node + 1
+    return ColorArray
+
+
+def graphColouring(Graph, NumNode, ColorArray):
+    ColorArray = ColorAssignment(Graph, NumNode, 0, ColorArray, 0)
+    print("Solution exist and Following are the assigned colours:")
+    for c in range(NumNode):
+        print("To node ", c + 1, "color ", ColorArray[c])
+
+
+def ControllingPhysicalConnectivity(Graph, required_physical, NumNode):
+    minimum_degree = 2
+    current_Node = 1
+    current_physical_connect = (2 * NLink) / (NumNode * (NumNode - 1))
+    while current_physical_connect > required_physical_connect:
+        if Graph.degree(current_Node) > minimum_degree:
+            Neighbors = [n for n in Graph.neighbors(current_Node)]
+            NeighborsDegree = [0] * len(Neighbors)
+            for i in range(len(Neighbors)):
+                NeighborsDegree[i] = Graph.degree(Neighbors[i])
+            for n in range(len(Neighbors)):
+                if NeighborsDegree[n] > minimum_degree and Graph.degree(current_Node) > minimum_degree:
+                    Graph.remove_edge(current_Node, Neighbors[n])
+                    NeighborsDegree[n] = Graph.degree(Neighbors[n])
+                    n_link = Graph.number_of_edges()
+                    current_physical_connect = (2 * n_link) / (NumNode * (NumNode - 1))
+                    if current_physical_connect <= required_physical:
+                        return Graph, current_physical_connect
+        if current_Node is NumNode:
+
+            return Graph, current_physical_connect
+        else:
+            current_Node = current_Node + 1
+
+
+def BetterPhysicalConnectivity(Graph, RequiredPhysical):
+    minimum_degree = 2
+    current_physical_connect = (2 * Graph.number_of_edges()) / (Graph.number_of_nodes() * (Graph.number_of_nodes() - 1))
+    NumNodes = Graph.number_of_nodes()
+    Current_Node = 1
+    AllNodesMinDegree = 0
+    RemovedIndex = False
+    while current_physical_connect > RequiredPhysical and AllNodesMinDegree is not Graph.number_of_nodes():
+        if Graph.degree(Current_Node) > minimum_degree:
+            Neighbors = [n for n in Graph.neighbors(Current_Node)]
+            node = Neighbors[randint(0, len(Neighbors) - 1)]
+            if Graph.degree(node) > 2:
+                Graph.remove_edge(node, Current_Node)
+            else:
+                n = 0
+                while RemovedIndex is False and len(Neighbors) is not 0:
+                    n = randint(0, len(Neighbors) - 1)
+                    node = Neighbors[n]
+                    del Neighbors[n]
+                    if Graph.degree(node) > 2:
+                        Graph.remove_edge(node, Current_Node)
+                        RemovedIndex = True
+                RemovedIndex = False
+            Neighbors = [n for n in Graph.neighbors(Current_Node)]
+            current_physical_connect = (2 * Graph.number_of_edges()) / (
+                    Graph.number_of_nodes() * (Graph.number_of_nodes() - 1))
+            if Current_Node is not Graph.number_of_nodes():
+                Current_Node = Current_Node + 1
+            else:
+                Current_Node = 1
+        else:
+            if Current_Node is not Graph.number_of_nodes():
+                Current_Node = Current_Node + 1
+            else:
+                Current_Node = 1
+            AllNodesMinDegree = AllNodesMinDegree + 1
+    return Graph
+
+
+def EdgeRemoveAssign(WavelengthIndex, BinList, WavelengthList, Current_Bin, Bolean, keylist, i, Graph):
+    if Bolean is True:
+        Current_Bin.remove_edge(keylist[i], keylist[i + 1])
+        Data = WavelengthList.find_node_at_index(WavelengthIndex)
+        Data.append(keylist[i])
+        Data.append(keylist[i + 1])
+        i = i + 1
+    else:
+        total = BinList.number_of_nodes()
+        n = 0
+        HasPath = True
+        BinPathBoleanList = [0] * total
+        while n is not total:
+            Current_Bin = BinList.find_node_at_index(n)
+            for k in range(len(keylist) - 1):
+                if Current_Bin.has_edge(keylist[k], keylist[k + 1]) is False:
+                    HasPath = False
+            BinPathBoleanList[n] = HasPath
+            n = n + 1
+            HasPath = True
+        n = 0
+        NoBin = True
+        while n is not len(BinPathBoleanList) and NoBin is True:
+            if BinPathBoleanList[n] is True:
+                NoBin = False
+                WavelengthIndex = n
+            n = n + 1
+
+        if NoBin is True:
+            Current_Bin = Graph.copy(as_view=False)
+            BinList.insert_last(Current_Bin)
+            WavelengthIndex = WavelengthIndex + 1
+            Current_Bin.remove_edge(keylist[i], keylist[i + 1])
+            Current_Wavelngth_Path_array = []
+            WavelengthList.insert_at_index(WavelengthIndex, Current_Wavelngth_Path_array)
+            Data = WavelengthList.find_node_at_index(WavelengthIndex)
+            Data.append(keylist[i])
+            Data.append(keylist[i + 1])
+            i = i + 1
+        else:
+            Current_Bin = BinList.find_node_at_index(WavelengthIndex)
+            Current_Bin.remove_edge(keylist[i], keylist[i + 1])
+            Data = WavelengthList.find_node_at_index(WavelengthIndex)
+            Data.append(keylist[i])
+            Data.append(keylist[i + 1])
+            i = i + 1
+    return i, Current_Bin, WavelengthIndex
+
+
+def WavelengthAssignementShortestPath(Graph, LightPathRequests):
+    BinWavalength = Graph.copy(as_view=False)
+    WavelengthIndex = 0
+    Current_Wavelngth_Path_array = []
+    Current_Bin = BinWavalength
+    WavLengthList = LinkedList()
+    WavLengthList.insert_at_index(WavelengthIndex, Current_Wavelngth_Path_array)
+    BinList = LinkedList()
+    BinList.insert_at_index(WavelengthIndex, Current_Bin)
+    Current_Bin = BinWavalength
+    for key in LightPathRequests:
+        keylist = LightPathRequests.setdefault(key)
+        if len(keylist) is not 1:
+            NoPath = False
+            for i in range(len(keylist) - 1):
+                if Current_Bin.has_edge(keylist[i], keylist[i + 1]) is False:
+                    NoPath = True
+            i = 0
+            while i is not (len(keylist) - 1):
+                if NoPath is False:
+                    i, Current_Bin, WavelengthIndex = EdgeRemoveAssign(WavelengthIndex, BinList, WavLengthList,
+                                                                       Current_Bin, True, keylist, i, Graph)
+                else:
+                    i, Current_Bin, WavelengthIndex = EdgeRemoveAssign(WavelengthIndex, BinList, WavLengthList,
+                                                                       Current_Bin, False, keylist, i, Graph)
+                    NoPath = False
+
+    return WavLengthList
+
+
+def edgeLabelingAndGraphPrinting(Graph, WaveLengthList):
+    plt.figure(figsize=(10, 10))
+    Node_pos = nx.circular_layout(Graph)
+    WavelengthLabel = nx.get_edge_attributes(Graph, 'weight')
+    EdgeLabelDictionaryList = LinkedList()
+    for i in range(WaveLengthList.number_of_nodes()):
+        EdgeList = WaveLengthList.find_node_at_index(i)
+        n = 0
+        while n is not len(EdgeList):
+            WavelengthLabel[(EdgeList[n], EdgeList[n + 1])] = i + 1
+            n = n + 2
+        EdgeLabelDictionaryList.insert_at_index(i, WavelengthLabel.copy())
+        WavelengthLabel.clear()
+    nx.draw(Graph, pos=Node_pos, edge_color='black', width=1, linewidths=1, node_size=500, node_color='green',
+            with_labels=True)
+    for i in range(EdgeLabelDictionaryList.number_of_nodes()):
+        WavelengthLabel = EdgeLabelDictionaryList.find_node_at_index(i)
+        label_pos = 0.1 * (i + 1)
+        nx.draw_networkx_edge_labels(Graph, pos=Node_pos, edge_color='red', edge_labels=WavelengthLabel,
+                                     label_pos=label_pos)
+    plt.axis('off')
+    plt.show()
+
+
+def ShortestPaths(MotherGraph, Graph, target_node):
+    NewBinIndex = 0
+    FitPath = []
+    Once = 0
+    n = 0
+    path = None
+    if nx.has_path(Graph, source=1, target=target_node) is True:
+        for path in nx.shortest_simple_paths(Graph, source=1, target=target_node):
+            if Once is 0:
+                FitPath = path
+                Once = 1
+            if len(path) is not Graph.number_of_nodes() and Once is 1:
+                return path, target_node + 1, NewBinIndex
+            if len(path) is Graph.number_of_nodes():
+                return FitPath, target_node + 1, NewBinIndex
+    if path is None:
+        for path in nx.shortest_simple_paths(MotherGraph, source=1, target=target_node):
+            return path, target_node + 1, 1
+
+
+def WavelengthAssignmentMinimumNumber(Graph):
+    BinWavalength = Graph.copy(as_view=False)
+    WavelengthIndex = 0
+    Current_Wavelngth_Path_array = []
+    Current_Bin = BinWavalength
+    WaveLengthList = LinkedList()
+    WaveLengthList.insert_at_index(WavelengthIndex, Current_Wavelngth_Path_array)
+    BinList = LinkedList()
+    BinList.insert_at_index(WavelengthIndex, Current_Bin)
+    Current_Bin = BinWavalength
+    i = 2
+    while i is not Graph.number_of_nodes() + 1:
+        path, i, NewBinIndex = ShortestPaths(Graph, Current_Bin, i)
+        n = 0
+        while n is not (len(path) - 1):
+            if NewBinIndex is 0:
+                n, Current_Bin, WavelengthIndex = EdgeRemoveAssign(WavelengthIndex, BinList, WaveLengthList,
+                                                                   Current_Bin, True, path, n, Graph)
+            else:
+                n, Current_Bin, WavelengthIndex = EdgeRemoveAssign(WavelengthIndex, BinList, WaveLengthList,
+                                                                   Current_Bin, False, path, n, Graph)
+                NewBinIndex = 0
+
+    edgeLabelingAndGraphPrinting(Graph, WaveLengthList)
+    return WaveLengthList
+
+
+column = 100
+row = 100
+required_physical_connect = 0.2
+MatrixArray = [1] * column * row
+GraphArray = TopologyGener(MatrixArray, column, row)
+NLink, Nnode, G = AddingNodesANdEdges(GraphArray, column, row)
+PrintingGraph(G)
+Physical_connect = (2 * NLink) / (Nnode * (Nnode - 1))
+if Physical_connect > required_physical_connect:
+    G = BetterPhysicalConnectivity(G, required_physical_connect)
+    PrintingGraph(G)
+Physical_connect = (2 * G.number_of_edges()) / (G.number_of_edges() * (G.number_of_edges() - 1))
+colorArray = [0] * Nnode
+
+neighbors = [n for n in G.neighbors(1)]
+graphColouring(G, Nnode, colorArray)
+ShortestPathPreferenceIndex = 1
+if ShortestPathPreferenceIndex is 1:
+    p = nx.shortest_path(G, source=1)
+    WaveLengthList = WavelengthAssignementShortestPath(G, p)
+    edgeLabelingAndGraphPrinting(G, WaveLengthList)
+    WaveLengthList.traverseWavelength()
+else:
+    WaveLengthList = WavelengthAssignmentMinimumNumber(G)
+    WaveLengthList.traverseWavelength()
